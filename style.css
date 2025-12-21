@@ -1,0 +1,347 @@
+/* ========================================
+	 LOCK SCREEN
+	 ======================================== */
+#lock {
+		position: fixed;
+		inset: 0;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background: #111;
+		z-index: 99999;
+}
+
+#lock.unlocked {
+		display: none;
+}
+
+#pass {
+		width: 120px;
+		padding: 14px;
+		font-size: 20px;
+		text-align: center;
+		letter-spacing: 8px;
+		background: transparent;
+		border: none;
+		border-bottom: 2px solid #333;
+		color: #fff8e7;
+		outline: none;
+		font-family: "Inter", sans-serif;
+}
+
+#pass:focus {
+		border-color: #fff8e7;
+}
+
+#pass.error {
+		border-color: #ff2828;
+		animation: shake 0.3s;
+}
+
+@keyframes shake {
+		25% { transform: translateX(-5px); }
+		75% { transform: translateX(5px); }
+}
+
+/* ========================================
+	 CONTENT - LOCKED STATE
+	 ======================================== */
+#content {
+		display: none;
+}
+
+#content.visible {
+		display: block;
+}
+
+/* ========================================
+	 BASE STYLES
+	 ======================================== */
+* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+}
+
+:root {
+		--fg: #111111;
+		--bg: #fff8e7;
+		--accent: #ff2828;
+		--image-size: 75vw;
+}
+
+@media (min-width: 769px) {
+		:root {
+				--image-size: 400px;
+		}
+}
+
+body {
+		font-family: "Inter", sans-serif;
+		font-feature-settings: "ss07", "ss08", "case";
+		background: var(--fg);
+		color: var(--bg);
+		overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+		display: none;
+}
+
+.intro::selection,
+.outro::selection {
+		background-color: var(--bg);
+		color: var(--fg);
+}
+
+.spotlight::selection {
+		background-color: var(--fg);
+		color: var(--bg);
+}
+
+/* ========================================
+	 SECTIONS
+	 ======================================== */
+section {
+		position: relative;
+		width: 100%;
+		height: 100vh;
+		overflow: hidden;
+		background: var(--fg);
+		color: var(--bg);
+}
+
+.intro,
+.outro {
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+		text-align: center;
+}
+
+/* ========================================
+	 HERO
+	 ======================================== */
+.hero {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+}
+
+.images {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: var(--image-size);
+		height: var(--image-size);
+		transform: translate(-50%, -50%);
+		transform-style: preserve-3d;
+		z-index: 1;
+}
+
+.images img {
+		position: absolute;
+	  opacity: 0;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		transform: none;
+		object-fit: cover;
+}
+
+/* ========================================
+	 BURST
+	 ======================================== */
+.burst {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		pointer-events: none;
+		perspective: 2000px;
+		transform-style: preserve-3d;
+}
+
+.burst img {
+		position: absolute;
+		object-fit: cover;
+		width: 250px;
+		height: 250px;
+		z-index: -1;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%) translateZ(-1000px) scale(0);
+		will-change: transform;
+}
+
+@media (min-width: 769px) {
+		.burst img {
+				width: 150px;
+				height: 150px;
+		}
+}
+
+/* ========================================
+	 SUB / ENTRY
+	 ======================================== */
+.sub {
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100vh;
+		background: var(--fg);
+		overflow: hidden;
+}
+
+.entry {
+		position: relative;
+		width: 100%;
+		height: 100vh;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+}
+
+.entry-images {
+		position: relative;
+		width: var(--image-size);
+		height: var(--image-size);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+}
+
+.pfp-left,
+.pfp-right {
+		position: absolute;
+		width: 100px;
+		height: 100px;
+		object-fit: cover;
+		will-change: transform, opacity, box-shadow;
+		z-index: 2;
+}
+
+.pfp-combined {
+		position: absolute;
+		object-fit: cover;
+		filter: blur(15px);
+		scale: 0.9;
+		width: 80vw;
+		opacity: 0;
+		z-index: 1;
+		will-change: opacity;
+}
+
+.entry-glow {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 2px;
+		height: 0%;
+		transform: translate(-50%, -50%);
+		background: var(--bg);
+		opacity: 0;
+		filter: blur(6px);
+		pointer-events: none;
+		z-index: 10;
+}
+
+/* ========================================
+	 SPOTLIGHT
+	 ======================================== */
+.spotlight {
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: var(--bg);
+		color: var(--fg);
+}
+
+/* ========================================
+	 TITLES
+	 ======================================== */
+.title-container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 90%;
+		height: 6rem;
+		overflow: hidden;
+}
+
+.title {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		padding: 3rem;
+		text-align: center;
+}
+
+.title h1 {
+		width: 100%;
+		font-size: 2.5rem;
+		line-height: 2.5rem;
+		letter-spacing: -0.15rem;
+		font-weight: 700;
+}
+
+@media (min-width: 769px) {
+		.title h1 {
+				font-size: 3rem;
+				line-height: 3rem;
+				letter-spacing: -0.2rem;
+		}
+}
+
+.word {
+		display: inline-block;
+		margin: 0 0.05em;
+		transform: translateY(100%);
+		opacity: 0;
+		filter: blur(4px);
+}
+
+.line {
+		margin: -0.2rem;
+		overflow: hidden;
+}
+
+span {
+		color: var(--accent);
+}
+
+/* ========================================
+	 IFRAME
+	 ======================================== */
+iframe {
+		position: fixed;
+		height: auto;
+		bottom: -3rem;
+		width: 20vw;
+		left: 50%;
+		transform: translate(-50%, 100%);
+		filter: blur(12px);
+		border-radius: 20px;
+		z-index: 1000;
+}
+
+/* ========================================
+	 PLAYER
+	 ======================================== */
+.player {
+		display: none;
+}
