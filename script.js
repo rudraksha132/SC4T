@@ -223,6 +223,7 @@ function initSite() {
                     gsap.set(doll2, { opacity: 0 });
                 }
                 showFirst = !showFirst;
+            }, 150);
         }
 
         function stopDollAnimation() {
