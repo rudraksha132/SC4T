@@ -223,9 +223,6 @@ function initSite() {
                     gsap.set(doll2, { opacity: 0 });
                 }
                 showFirst = !showFirst;
-
-                if (navigator.vibrate) navigator.vibrate(10);
-            }, 500);
         }
 
         function stopDollAnimation() {
