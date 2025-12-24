@@ -248,7 +248,7 @@ function initSite() {
                     gsap.set(doll2, { opacity: 0 });
                 }
                 showFirst = !showFirst;
-            }, 500);
+            }, 750);
         }
 
         function stopDollAnimation() {
