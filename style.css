@@ -357,6 +357,7 @@ TITLES
 .entry h1 {
     font-family: "P", serif;
     font-weight: 500;
+    user-select: none;
     font-size: 3rem;
     line-height: 3rem;
     color: #ff2323;
