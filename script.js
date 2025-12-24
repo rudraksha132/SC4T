@@ -224,7 +224,7 @@ function initSite() {
         entryTl.to({}, { duration: 1 });
 
         // ========================================
-        // DOLL ANIMATION
+        // DOLL ANIMATION 
         // ========================================
         const dollContainer = document.querySelector('.doll-container');
         const doll1 = document.querySelector('.doll-1');
