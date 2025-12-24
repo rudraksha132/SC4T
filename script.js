@@ -216,7 +216,7 @@ function initSite() {
         entryTl.to({}, { duration: 3 });
         entryTl.to(combinedImage, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
         entryTl.to(entryText, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
-        entryTl.to({}, { duration: 1 });
+        entryTl.to({}, { duration: 0.75 });
         entryTl.to(universe, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 2, ease: "power2.out" }); 
         entryTl.add(() => { if (navigator.vibrate) navigator.vibrate(20); });
         entryTl.to({}, { duration: 1 });
