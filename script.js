@@ -184,7 +184,7 @@ function initSite() {
         gsap.set(entryGlow, { opacity: 0, height: "0%" });
 
         const entryTl = gsap.timeline({
-            scrollTrigger: { trigger: ".sub", start: "top top", pin: true, scrub: 1, once: 0 }
+            scrollTrigger: { trigger: ".sub", start: "top top", end: "+=200%", pin: true, scrub: 1, once: 0 }
         });
 
         entryTl.to(leftImage, { x: -80, duration: 1.5, ease: "power2.out" }, "enter");
@@ -201,15 +201,16 @@ function initSite() {
         entryTl.to([leftImage, rightImage], { opacity: 0, duration: 0.1, ease: "none" }, "join+=0.4");
         entryTl.add(() => { if (navigator.vibrate) navigator.vibrate(20); }, "join+=0.4");
         entryTl.to({}, { duration: 0.5 });
-        entryTl.to(entryText, { opacity: 1, filter: "blur(0px)", duration: 1.7, ease: "power2.out" }, "textIn+=0.5");
+        entryTl.to(entryText, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" }, "textIn+=0.5");
         entryTl.to(entryGlow, { opacity: 0, duration: 0.8, ease: "power2.out" }, "fade");
-        entryTl.to({}, { duration: 2 });
-        entryTl.to(combinedImage, { opacity: 0, filter: "blur(8px)", duration: 1.5, ease: "power2.inOut" }, "exit");
-        entryTl.to(entryText, { opacity: 0, filter: "blur(8px)", duration: 1.5, ease: "power2.inOut" }, "exit");
+        entryTl.to({}, { duration: 3 });
+        entryTl.to(combinedImage, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
+        entryTl.to(entryText, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
         entryTl.to({}, { duration: 1 });
-        entryTl.to(universe, { opacity: 1, filter: "blur(0px)", duration: 1.5, ease: "power2.out" });
-        entryTl.to(part1, { opacity: 1, filter: "blur(0px)", duration: 1.5, ease: "power2.out" });
-        entryTl.to(part2, { opacity: 1, filter: "blur(0px)", duration: 1.5, ease: "power2.out" });
+        entryTl.to(universe, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" }); 
+        entryTl.to({}, { duration: 1 });
+        entryTl.to(part1, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
+        entryTl.to(part2, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to({}, { duration: 1 });
 
         // ========================================
