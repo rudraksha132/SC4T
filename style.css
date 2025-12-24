@@ -81,6 +81,11 @@ BASE STYLES
     src: url("https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/fonts/lg.otf") format("opentype");
 }
 
+@font-face {
+    font-family: "P";
+    src: url("https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/fonts/pp-playground/medium.otf") format("opentype");
+}
+
 body {
     font-family: "LG", sans-serif;
     font-feature-settings: "ss02";
@@ -229,6 +234,15 @@ section {
     align-items: center;
 }
 
+.universe {
+    position: absolute;
+    width: 80vw;
+    object-fit: cover;
+    filter: blur(15px);
+    opacity: 0;
+    z-index: 0;
+}
+
 .pfp-left,
 .pfp-right {
     position: absolute;
@@ -283,8 +297,59 @@ section {
 }
 
 /* ========================================
-   TITLES
-   ======================================== */
+TITLES
+======================================== */
+
+.entry-text {
+    position: absolute;
+    display: flex;
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -70%);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 5;
+}
+
+.entry h1 {
+    font-family: "P", serif;
+    font-weight: 500;
+    font-size: 3rem;
+    line-height: 3rem;
+    color: #d8d8d8;
+    opacity: 0;
+    filter: blur(15px);
+}
+
+.universe-text {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.part_1 h1, .part_2 h1 {
+    color: #ffd0d0;
+}
+
+.part_1 {
+    position: absolute;
+    top: 75%;
+    left: 0;
+    transform: translate(0, -75%);
+}
+
+.part_2 {
+    position: absolute;
+    bottom: 5%;
+    left: 30%;
+    transform: translate(-30%, -5%);
+}
+
 .title-container {
     display: flex;
     justify-content: center;
