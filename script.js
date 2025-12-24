@@ -194,7 +194,7 @@ function initSite() {
         gsap.set(entryGlow, { opacity: 0, height: "0%" });
 
         const entryTl = gsap.timeline({
-            scrollTrigger: { trigger: ".sub", start: "top top", end: "+=200%", pin: true, scrub: 1, once: 0 }
+            scrollTrigger: { trigger: ".sub", start: "top top", end: "+=400%", pin: true, scrub: 1, once: 0 }
         });
 
         entryTl.to(leftImage, { x: -80, duration: 1.5, ease: "power2.out" }, "enter");
