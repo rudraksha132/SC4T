@@ -116,13 +116,26 @@
         </div>
     </section>
     
-    <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/3be9ACTxtcL6Zm4vJRUiPG" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
-    
-    <div class="player">
-        <div class="cover"></div>
-        <div class="lyrics"></div>
-        <div class="controls"></div>
+    <!-- Custom Music Player -->
+    <div id="custom-player">
+        <div class="player-bg"></div>
+        <div class="player-content">
+            <div class="header-row">
+                <img id="album-art" src="" alt="Album Art">
+                <div class="meta-inline">
+                    <span id="song-title">Song Title</span>
+                    <span class="divider">-</span>
+                    <span id="artist-name">Artist</span>
+                </div>
+            </div>
+            <div class="lyrics-container" id="lyrics-container">
+                <div id="lyrics-wrapper">
+                    <!-- Lyrics inserted via JS -->
+                </div>
+            </div>
+        </div>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
