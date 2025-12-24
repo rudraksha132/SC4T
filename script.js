@@ -593,7 +593,4 @@ function initSite() {
             });
         }
     }
-    window.addEventListener('resize', () => {
-        location.reload();
-    });
 }
