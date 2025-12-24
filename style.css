@@ -89,7 +89,6 @@ BASE STYLES
 body {
     font-family: "LG", sans-serif;
     font-feature-settings: "ss02";
-    /* font-feature-settings: "ss07", "ss08", "case"; */
     background: var(--fg);
     color: var(--bg);
     overflow-x: hidden;
@@ -131,6 +130,48 @@ section {
     align-items: center;
     overflow: hidden;
     text-align: center;
+}
+
+/* ========================================
+   INTRO MARQUEE
+   ======================================== */
+.marquee-mask {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 3rem; 
+    overflow: hidden;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.marquee-track {
+    display: flex;
+    white-space: nowrap;
+    will-change: transform;
+    opacity: 0;
+}
+
+.marquee-track span {
+    font-family: "LG", sans-serif;
+    font-size: 3rem;
+    letter-spacing: -0.1rem;
+    line-height: 1;
+    color: var(--bg);
+    text-transform: uppercase;
+}
+
+@media (min-width: 769px) {
+    .marquee-track span {
+        font-size: 9rem;
+    }
+    .marquee-mask {
+        height: 8rem;
+    }
 }
 
 /* ========================================
@@ -332,8 +373,6 @@ TITLES
     z-index: 5;
 }
 
-
-
 .part_1 {
     position: absolute;
     top: 75%;
@@ -448,21 +487,13 @@ span {
 
 /* Keyframe animation for frame switching */
 @keyframes dollFrameSwitch {
-    0%, 49.9% {
-        opacity: 1;
-    }
-    50%, 100% {
-        opacity: 0;
-    }
+    0%, 49.9% { opacity: 1; }
+    50%, 100% { opacity: 0; }
 }
 
 @keyframes dollFrameSwitchAlt {
-    0%, 49.9% {
-        opacity: 0;
-    }
-    50%, 100% {
-        opacity: 1;
-    }
+    0%, 49.9% { opacity: 0; }
+    50%, 100% { opacity: 1; }
 }
 
 .doll-container.active .doll-1 {
