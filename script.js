@@ -23,7 +23,10 @@ pass.addEventListener('input', () => {
         lock.classList.add('unlocked');
         content.classList.add('visible');
         if (navigator.vibrate) navigator.vibrate(30);
+        
+        // Initialize Site AND Player immediately on user interaction
         initSite();
+        initPlayer(); 
     } else {
         pass.classList.add('error');
         pass.value = '';
@@ -31,6 +34,226 @@ pass.addEventListener('input', () => {
         setTimeout(() => pass.classList.remove('error'), 300);
     }
 });
+
+// ========================================
+// PLAYER CONFIGURATION
+// ========================================
+const SONGS = [
+    {
+        title: "Blue",
+        artist: "Yung Kai",
+        color: "#243c5a", 
+        cover: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/yung%20kai%20-%20blue%20(official%20audio).jpg",
+        audio: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/yung%20kai%20-%20blue%20(official%20audio).mp3",
+        lyrics: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/yung%20kai%20-%20blue%20(official%20audio).txt"
+    },
+    {
+        title: "I Think They Call This Love",
+        artist: "Elliott",
+        color: "#5a2432", 
+        cover: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/I%20Think%20They%20Call%20This%20Love%20(Cover).jpg",
+        audio: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/I%20Think%20They%20Call%20This%20Love%20(Cover).mp3",
+        lyrics: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/I%20Think%20They%20Call%20This%20Love%20(Cover).txt"
+    },
+    {
+        title: "Belong Together",
+        artist: "Mark Ambor",
+        color: "#6b4c2b", 
+        cover: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/Mark%20Ambor%20-%20Belong%20Together.jpg",
+        audio: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/Mark%20Ambor%20-%20Belong%20Together.mp3",
+        lyrics: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/Mark%20Ambor%20-%20Belong%20Together.txt"
+    }
+];
+
+let audio = new Audio();
+let parsedLyrics = [];
+let isScrubbing = false;
+let userScrollTimeout;
+let currentLineIndex = -1;
+
+function parseTimestamp(timeStr) {
+    const parts = timeStr.split(':');
+    return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+}
+
+async function initPlayer() {
+    // Select Random Song
+    const songIndex = Math.floor(Math.random() * SONGS.length);
+    const song = SONGS[songIndex];
+
+    // UI Setup
+    document.getElementById('album-art').src = song.cover;
+    document.getElementById('song-title').textContent = song.title;
+    document.getElementById('artist-name').textContent = song.artist;
+    document.querySelector('.player-bg').style.background = song.color;
+
+    // Load Audio
+    audio.src = song.audio;
+    audio.loop = true;
+    
+    // Play audio
+    try {
+        await audio.play();
+    } catch (e) {
+        console.log("Autoplay blocked, waiting for interaction", e);
+    }
+
+    // Load Lyrics
+    try {
+        const response = await fetch(song.lyrics);
+        const text = await response.text();
+        parseLyrics(text);
+        renderLyrics();
+        startSyncLoop();
+    } catch (e) {
+        console.error("Lyrics failed to load", e);
+    }
+
+    // Scroll Interaction (Pause sync on scroll, resume after 1.5s)
+    const wrapper = document.getElementById('lyrics-wrapper');
+    wrapper.addEventListener('scroll', () => {
+        isScrubbing = true;
+        clearTimeout(userScrollTimeout);
+        userScrollTimeout = setTimeout(() => {
+            isScrubbing = false;
+        }, 1500); 
+    });
+}
+
+function parseLyrics(text) {
+    parsedLyrics = [];
+    const lines = text.split(/\n\s*\n/);
+    
+    lines.forEach(block => {
+        const words = [];
+        let blockStartTime = null;
+        let blockEndTime = 0;
+        const rawLines = block.split('\n');
+        
+        rawLines.forEach(raw => {
+            const match = raw.match(/\[(\d+:\d+\.\d+)\]\s*(.*?)\s*\[(\d+:\d+\.\d+)\]/);
+            if (match) {
+                const start = parseTimestamp(match[1]);
+                const wordText = match[2];
+                const end = parseTimestamp(match[3]);
+                
+                if (blockStartTime === null) blockStartTime = start;
+                blockEndTime = end;
+
+                words.push({
+                    text: wordText,
+                    start: start,
+                    end: end,
+                    id: Math.random().toString(36).substr(2, 9)
+                });
+            }
+        });
+
+        if (words.length > 0) {
+            parsedLyrics.push({
+                startTime: blockStartTime,
+                endTime: blockEndTime,
+                words: words
+            });
+        }
+    });
+}
+
+function renderLyrics() {
+    const wrapper = document.getElementById('lyrics-wrapper');
+    wrapper.innerHTML = '';
+
+    parsedLyrics.forEach((line, index) => {
+        const div = document.createElement('div');
+        div.className = 'lyric-line';
+        div.dataset.index = index;
+        div.dataset.start = line.startTime;
+
+        div.addEventListener('click', () => {
+            audio.currentTime = line.startTime;
+            isScrubbing = false;
+        });
+
+        line.words.forEach(word => {
+            const span = document.createElement('span');
+            span.className = 'lyric-word';
+            span.textContent = word.text + ' '; 
+            span.dataset.start = word.start;
+            span.dataset.end = word.end;
+            span.id = 'w-' + word.id;
+            div.appendChild(span);
+        });
+
+        wrapper.appendChild(div);
+    });
+}
+
+function startSyncLoop() {
+    const wrapper = document.getElementById('lyrics-wrapper');
+    const lines = document.querySelectorAll('.lyric-line');
+    const containerHeight = document.getElementById('lyrics-container').offsetHeight;
+
+    gsap.ticker.add(() => {
+        const time = audio.currentTime;
+        
+        let activeIdx = -1;
+        for (let i = 0; i < parsedLyrics.length; i++) {
+            if (time >= parsedLyrics[i].startTime) {
+                activeIdx = i;
+            } else {
+                break;
+            }
+        }
+
+        // --- Line Sync ---
+        if (activeIdx !== -1 && activeIdx < lines.length) {
+            lines.forEach((line, idx) => {
+                if (idx === activeIdx) {
+                    if (!line.classList.contains('active')) line.classList.add('active');
+                } else {
+                    if (line.classList.contains('active')) line.classList.remove('active');
+                }
+            });
+
+            // Auto-scroll center
+            if (!isScrubbing && activeIdx !== currentLineIndex) {
+                const activeLine = lines[activeIdx];
+                const offset = activeLine.offsetTop - (containerHeight / 2) + (activeLine.offsetHeight / 2);
+                wrapper.scrollTo({ top: offset, behavior: 'smooth' });
+                currentLineIndex = activeIdx;
+            }
+        }
+
+        // --- Word Sync ---
+        if (activeIdx !== -1) {
+            const currentLineData = parsedLyrics[activeIdx];
+            currentLineData.words.forEach(word => {
+                const el = document.getElementById('w-' + word.id);
+                if (!el) return;
+
+                if (time >= word.end) {
+                    // Completed: Move UP and STAY UP
+                    el.style.setProperty('--p', '100%');
+                    if (!el.classList.contains('popped')) {
+                        el.classList.add('popped');
+                    }
+                } else if (time >= word.start) {
+                    // Active: Gradient fill
+                    const duration = word.end - word.start;
+                    const progress = (time - word.start) / duration;
+                    const percent = Math.min(100, Math.max(0, progress * 100));
+                    el.style.setProperty('--p', `${percent}%`);
+                    el.classList.remove('popped');
+                } else {
+                    // Future: Grey
+                    el.style.setProperty('--p', '0%');
+                    el.classList.remove('popped');
+                }
+            });
+        }
+    });
+}
+
 
 // ========================================
 // MAIN SITE INITIALIZATION
@@ -60,7 +283,7 @@ function initSite() {
     function animate() {
         const totalImages = images.length;
         const mainImage = images[0];
-        const iframe = document.querySelector("iframe");
+        const player = document.getElementById("custom-player");
         const isMobile = window.innerWidth <= 768;
         const screenHeight = window.innerHeight;
         const screenWidth = window.innerWidth;
@@ -128,10 +351,12 @@ function initSite() {
         tl.to(images, { scale: 1, opacity: 1, duration: 0 });
         tl.to(mainImage, { duration: 0.5 });
         tl.addLabel("startReveal");
-        tl.to(marqueeTrack, { yPercent: 0, ease: "power4.out", duration: 2}, "startReveal");
+        tl.to(marqueeTrack, { yPercent: 0, ease: "power4.out", duration: 1.5}, "startReveal");
         tl.to(images, { scale: 0.95, ease: "power1.inOut", duration: 0.6 }, "startReveal");
-        tl.to(iframe, { y: "0%", filter: "blur(0px)", borderRadius: "12px", ease: "power1.inOut", duration: 1.25 }, "startReveal");
-        tl.to(iframe, { width: isMobile ? "90vw" : "40vw", ease: CustomEase.create("spring", "M0,0 L0.000,0.000 L0.005,0.007 L0.010,0.029 L0.015,0.062 L0.020,0.104 L0.025,0.155 L0.030,0.213 L0.035,0.275 L0.040,0.340 L0.045,0.408 L0.050,0.476 L0.055,0.544 L0.060,0.610 L0.065,0.675 L0.070,0.737 L0.075,0.795 L0.080,0.849 L0.085,0.900 L0.090,0.946 L0.095,0.987 L0.100,1.023 L0.105,1.055 L0.110,1.083 L0.115,1.106 L0.120,1.124 L0.125,1.139 L0.130,1.150 L0.135,1.157 L0.140,1.162 L0.145,1.163 L0.150,1.162 L0.155,1.158 L0.160,1.153 L0.165,1.146 L0.170,1.138 L0.175,1.129 L0.180,1.118 L0.185,1.108 L0.190,1.097 L0.195,1.086 L0.200,1.075 L0.205,1.064 L0.210,1.053 L0.215,1.043 L0.220,1.034 L0.225,1.025 L0.230,1.017 L0.235,1.009 L0.240,1.002 L0.245,0.996 L0.250,0.991 L0.255,0.987 L0.260,0.983 L0.265,0.980 L0.270,0.977 L0.275,0.976 L0.280,0.974 L0.285,0.974 L0.290,0.973 L0.295,0.974 L0.300,0.974 L0.305,0.975 L0.310,0.976 L0.315,0.977 L0.320,0.979 L0.325,0.981 L0.330,0.982 L0.335,0.984 L0.340,0.986 L0.345,0.988 L0.350,0.990 L0.355,0.991 L0.360,0.993 L0.365,0.994 L0.370,0.996 L0.375,0.997 L0.380,0.999 L0.385,1.000 L0.390,1.001 L0.395,1.001 L0.400,1.002 L0.405,1.003 L0.410,1.003 L0.415,1.004 L0.420,1.004 L0.425,1.004 L0.430,1.004 L0.435,1.004 L0.440,1.004 L0.445,1.004 L0.450,1.004 L0.455,1.004 L0.460,1.004 L0.465,1.003 L0.470,1.003 L0.475,1.003 L0.480,1.003 L0.485,1.002 L0.490,1.002 L0.495,1.002 L0.500,1.001 L0.505,1.001 L0.510,1.001 L0.515,1.001 L0.520,1.000 L0.525,1.000 L0.530,1.000 L0.535,1.000 L0.540,1.000 L0.545,1.000 L0.550,1.000 L0.555,0.999 L0.560,0.999 L0.565,0.999 L0.570,0.999 L0.575,0.999 L0.580,0.999 L0.585,0.999 L0.590,0.999 L0.595,0.999 L0.600,0.999 L0.605,0.999 L0.610,0.999 L0.615,0.999 L0.620,1.000 L0.625,1.000 L0.630,1.000 L0.635,1.000 L0.640,1.000 L0.645,1.000 L0.650,1.000 L0.655,1.000 L0.660,1.000 L0.665,1.000 L0.670,1.000 L0.675,1.000 L0.680,1.000 L0.685,1.000 L0.690,1.000 L0.695,1.000 L0.700,1.000 L0.705,1.000 L0.710,1.000 L0.715,1.000 L0.720,1.000 L0.725,1.000 L0.730,1.000 L0.735,1.000 L0.740,1.000 L0.745,1.000 L0.750,1.000 L0.755,1.000 L0.760,1.000 L0.765,1.000 L0.770,1.000 L0.775,1.000 L0.780,1.000 L0.785,1.000 L0.790,1.000 L0.795,1.000 L0.800,1.000 L0.805,1.000 L0.810,1.000 L0.815,1.000 L0.820,1.000 L0.825,1.000 L0.830,1.000 L0.835,1.000 L0.840,1.000 L0.845,1.000 L0.850,1.000 L0.855,1.000 L0.860,1.000 L0.865,1.000 L0.870,1.000 L0.875,1.000 L0.880,1.000 L0.885,1.000 L0.890,1.000 L0.895,1.000 L0.900,1.000 L0.905,1.000 L0.910,1.000 L0.915,1.000 L0.920,1.000 L0.925,1.000 L0.930,1.000 L0.935,1.000 L0.940,1.000 L0.945,1.000 L0.950,1.000 L0.955,1.000 L0.960,1.000 L0.965,1.000 L0.970,1.000 L0.975,1.000 L0.980,1.000 L0.985,1.000 L0.990,1.000 L0.995,1.000 L1.000,1.000"), duration: 1.85 }, "startReveal+=0.75");
+        
+        // ANIMATE CUSTOM PLAYER IN
+        tl.to(player, { y: "0%", filter: "blur(0px)", borderRadius: "12px", ease: "power1.inOut", duration: 1.25 }, "startReveal");
+        tl.to(player, { width: isMobile ? "90vw" : "40vw", ease: CustomEase.create("spring", "M0,0 L0.000,0.000 L0.005,0.007 L0.010,0.029 L0.015,0.062 L0.020,0.104 L0.025,0.155 L0.030,0.213 L0.035,0.275 L0.040,0.340 L0.045,0.408 L0.050,0.476 L0.055,0.544 L0.060,0.610 L0.065,0.675 L0.070,0.737 L0.075,0.795 L0.080,0.849 L0.085,0.900 L0.090,0.946 L0.095,0.987 L0.100,1.023 L0.105,1.055 L0.110,1.083 L0.115,1.106 L0.120,1.124 L0.125,1.139 L0.130,1.150 L0.135,1.157 L0.140,1.162 L0.145,1.163 L0.150,1.162 L0.155,1.158 L0.160,1.153 L0.165,1.146 L0.170,1.138 L0.175,1.129 L0.180,1.118 L0.185,1.108 L0.190,1.097 L0.195,1.086 L0.200,1.075 L0.205,1.064 L0.210,1.053 L0.215,1.043 L0.220,1.034 L0.225,1.025 L0.230,1.017 L0.235,1.009 L0.240,1.002 L0.245,0.996 L0.250,0.991 L0.255,0.987 L0.260,0.983 L0.265,0.980 L0.270,0.977 L0.275,0.976 L0.280,0.974 L0.285,0.974 L0.290,0.973 L0.295,0.974 L0.300,0.974 L0.305,0.975 L0.310,0.976 L0.315,0.977 L0.320,0.979 L0.325,0.981 L0.330,0.982 L0.335,0.984 L0.340,0.986 L0.345,0.988 L0.350,0.990 L0.355,0.991 L0.360,0.993 L0.365,0.994 L0.370,0.996 L0.375,0.997 L0.380,0.999 L0.385,1.000 L0.390,1.001 L0.395,1.001 L0.400,1.002 L0.405,1.003 L0.410,1.003 L0.415,1.004 L0.420,1.004 L0.425,1.004 L0.430,1.004 L0.435,1.004 L0.440,1.004 L0.445,1.004 L0.450,1.004 L0.455,1.004 L0.460,1.004 L0.465,1.003 L0.470,1.003 L0.475,1.003 L0.480,1.003 L0.485,1.002 L0.490,1.002 L0.495,1.002 L0.500,1.001 L0.505,1.001 L0.510,1.001 L0.515,1.001 L0.520,1.000 L0.525,1.000 L0.530,1.000 L0.535,1.000 L0.540,1.000 L0.545,1.000 L0.550,1.000 L0.555,0.999 L0.560,0.999 L0.565,0.999 L0.570,0.999 L0.575,0.999 L0.580,0.999 L0.585,0.999 L0.590,0.999 L0.595,0.999 L0.600,0.999 L0.605,0.999 L0.610,0.999 L0.615,0.999 L0.620,1.000 L0.625,1.000 L0.630,1.000 L0.635,1.000 L0.640,1.000 L0.645,1.000 L0.650,1.000 L0.655,1.000 L0.660,1.000 L0.665,1.000 L0.670,1.000 L0.675,1.000 L0.680,1.000 L0.685,1.000 L0.690,1.000 L0.695,1.000 L0.700,1.000 L0.705,1.000 L0.710,1.000 L0.715,1.000 L0.720,1.000 L0.725,1.000 L0.730,1.000 L0.735,1.000 L0.740,1.000 L0.745,1.000 L0.750,1.000 L0.755,1.000 L0.760,1.000 L0.765,1.000 L0.770,1.000 L0.775,1.000 L0.780,1.000 L0.785,1.000 L0.790,1.000 L0.795,1.000 L0.800,1.000 L0.805,1.000 L0.810,1.000 L0.815,1.000 L0.820,1.000 L0.825,1.000 L0.830,1.000 L0.835,1.000 L0.840,1.000 L0.845,1.000 L0.850,1.000 L0.855,1.000 L0.860,1.000 L0.865,1.000 L0.870,1.000 L0.875,1.000 L0.880,1.000 L0.885,1.000 L0.890,1.000 L0.895,1.000 L0.900,1.000 L0.905,1.000 L0.910,1.000 L0.915,1.000 L0.920,1.000 L0.925,1.000 L0.930,1.000 L0.935,1.000 L0.940,1.000 L0.945,1.000 L0.950,1.000 L0.955,1.000 L0.960,1.000 L0.965,1.000 L0.970,1.000 L0.975,1.000 L0.980,1.000 L0.985,1.000 L0.990,1.000 L0.995,1.000 L1.000,1.000"), duration: 1.85 }, "startReveal+=0.75");
 
         for (let i = 0; i < totalImages - 1; i++) {
             tl.to(images[i], {
@@ -194,7 +419,7 @@ function initSite() {
         gsap.set(entryGlow, { opacity: 0, height: "0%" });
 
         const entryTl = gsap.timeline({
-            scrollTrigger: { trigger: ".sub", start: "top top", end: "+=400%", pin: true, scrub: 1, once: 0 }
+            scrollTrigger: { trigger: ".sub", start: "top top", end: "+=200%", pin: true, scrub: 1, once: 0 }
         });
 
         entryTl.to(leftImage, { x: -80, duration: 1.5, ease: "power2.out" }, "enter");
@@ -216,16 +441,15 @@ function initSite() {
         entryTl.to({}, { duration: 3 });
         entryTl.to(combinedImage, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
         entryTl.to(entryText, { opacity: 0, filter: "blur(8px)", duration: 2, ease: "power2.inOut" }, "exit");
-        entryTl.to({}, { duration: 0.75 });
-        entryTl.to(universe, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 2.5, ease: "power2.out" }); 
-        entryTl.add(() => { if (navigator.vibrate) navigator.vibrate(20); });
+        entryTl.to({}, { duration: 1 });
+        entryTl.to(universe, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" }); 
         entryTl.to({}, { duration: 1 });
         entryTl.to(part1, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to(part2, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to({}, { duration: 1 });
 
         // ========================================
-        // DOLL ANIMATION 
+        // DOLL ANIMATION
         // ========================================
         const dollContainer = document.querySelector('.doll-container');
         const doll1 = document.querySelector('.doll-1');
@@ -249,7 +473,7 @@ function initSite() {
                     gsap.set(doll2, { opacity: 0 });
                 }
                 showFirst = !showFirst;
-            }, 750);
+            }, 500);
         }
 
         function stopDollAnimation() {
@@ -306,12 +530,12 @@ function initSite() {
         // ========================================
         // ENDING
         // ========================================
-
+        // Replaced iframe selector with custom player selector
         ScrollTrigger.create({
             trigger: ".outro",
             start: "99% bottom",
             onEnter: () => {
-                gsap.to(iframe, {
+                gsap.to(player, {
                     y: "90%",
                     filter: "blur(8px)",
                     duration: 0.75,
@@ -319,7 +543,7 @@ function initSite() {
                 });
             },
             onLeave: () => {
-                gsap.to(iframe, {
+                gsap.to(player, {
                     y: "0%",
                     filter: "blur(0px)",
                     duration: 0.75,
@@ -327,7 +551,7 @@ function initSite() {
                 });
             },
             onEnterBack: () => {
-                gsap.to(iframe, {
+                gsap.to(player, {
                     y: "90%",
                     filter: "blur(8px)",
                     duration: 0.75,
@@ -335,7 +559,7 @@ function initSite() {
                 });
             },
             onLeaveBack: () => {
-                gsap.to(iframe, {
+                gsap.to(player, {
                     y: "0%",
                     filter: "blur(0px)",
                     duration: 0.75,
@@ -346,7 +570,7 @@ function initSite() {
 
         ScrollTrigger.create({
             trigger: ".outro",
-            start: "99% bottom",
+            start: "99.9% bottom",
             onEnter: () => {
                 download();
             },
@@ -369,4 +593,7 @@ function initSite() {
             });
         }
     }
+    window.addEventListener('resize', () => {
+        location.reload();
+    });
 }
