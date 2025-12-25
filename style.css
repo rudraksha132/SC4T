@@ -353,8 +353,6 @@ section {
     text-align: center;
     justify-content: center;
     z-index: 5;
-    opacity: 0;
-    filter: blur(15px);
 }
 
 .remember-text {
@@ -366,6 +364,8 @@ section {
     text-align: center;
     justify-content: center;
     z-index: 5;
+    opacity: 0;
+    filter: blur(15px);
 }
 
 .part_1 {
