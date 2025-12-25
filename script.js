@@ -548,7 +548,7 @@ function initSite() {
                 trigger: rollers,
                 start: "top 75%", 
                 end: "bottom 60%",
-                scrub: 1
+                scrub: 1.5
             }
         });
 
