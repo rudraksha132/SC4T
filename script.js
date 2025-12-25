@@ -621,6 +621,34 @@ function initSite() {
             }
         });
 
+                // ========================================
+        // OUTRO TEXT SWAP ANIMATION
+        // ========================================
+        const outroTextTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: ".outro",
+                start: "top 50%", 
+                end: "center 45%",
+                scrub: 1.5 
+            }
+        });
+
+        // 1. Fade OUT "I'LL LOVE YOU"
+        outroTextTl.to(".swap-line.initial", {
+            opacity: 0,
+            filter: "blur(8px)",
+            duration: 1,
+            ease: "power2.inOut"
+        }, "swap");
+
+        // 2. Fade IN "TOGETHER"
+        outroTextTl.to(".swap-line.final", {
+            opacity: 1,
+            filter: "blur(0px)",
+            duration: 1,
+            ease: "power2.inOut"
+        }, "swap");
+
         // Outro Animation for Player
         ScrollTrigger.create({
             trigger: ".outro",
