@@ -48,7 +48,7 @@ const SONGS = [
     },
     {
         title: "I Think They Call This Love",
-        artist: "Elliott",
+        artist: "Matthew Ifield",
         color: "#5a2432", 
         cover: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/I%20Think%20They%20Call%20This%20Love%20(Cover).jpg",
         audio: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/I%20Think%20They%20Call%20This%20Love%20(Cover).mp3",
@@ -179,7 +179,6 @@ function parseLyrics(text) {
             const gap = nextStart - currentEnd;
             
             if (gap > PAUSE_THRESHOLD) {
-                // Insert a pause line with "..."
                 lyricsWithPauses.push({
                     startTime: currentEnd,
                     endTime: nextStart,
@@ -486,12 +485,85 @@ function initSite() {
 
         // Doll Animation FIX: Robust start/stop and overwrite to prevent glitching
         const dollContainer = document.querySelector('.doll-container');
+        const subtitle = document.querySelector('.subtitle');
         const doll1 = document.querySelector('.doll-1');
         const doll2 = document.querySelector('.doll-2');
         let dollFrameLoop = null;
-        gsap.set(dollContainer, { y: "110%" }); // Keep offscreen initially
+        gsap.set(dollContainer, { y: "110%" });
+        gsap.set(subtitle, { opacity: 0 });
         gsap.set(doll1, { opacity: 1 });
         gsap.set(doll2, { opacity: 0 });
+
+        // ========================================
+        // CONFETTI LOGIC
+        // ========================================
+        function fireSprinklers() {
+            const colors = ['#fbfafb', '#262f4c', '#e82c5f', '#f8c1ad']; 
+            const end = Date.now() + 1000;
+
+            (function frame() {
+                confetti({
+                    particleCount: 8,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 1 },
+                    colors: colors,
+                    scalar: 1,
+                    shapes: ['circle', 'square'],
+                    drift: 0,
+                    gravity: 1,
+                    ticks: 300,
+                    zIndex: 9999 
+                });
+                
+                confetti({
+                    particleCount: 8,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 1 }, 
+                    colors: colors,
+                    scalar: 1,
+                    shapes: ['circle', 'square'],
+                    drift: 0,
+                    gravity: 1,
+                    ticks: 300,
+                    zIndex: 9999
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // ========================================
+        // INDIVIDUAL ROLLING TEXT ANIMATION
+        // ========================================
+        const rollers = document.querySelectorAll('.line-roller');
+        
+        gsap.set(rollers, { yPercent: 0 });
+
+        const rollTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: rollers,
+                start: "top 75%", 
+                end: "bottom 60%",
+                scrub: 1
+            }
+        });
+
+        rollers.forEach((roller, i) => {
+            rollTl.to(roller, {
+                yPercent: -50,
+                duration: 1,
+                ease: "none",
+                onEnter: () => {
+                    if (i === rollers.length - 1) {
+                        fireSprinklers();
+                    }
+                }
+            });
+        });
 
         function startDollAnimation() {
             // FIX: Ensure no double intervals
@@ -546,10 +618,22 @@ function initSite() {
         ScrollTrigger.create({
             trigger: ".outro",
             start: "99% bottom",
-            onEnter: () => gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" }),
-            onLeave: () => gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" }),
-            onEnterBack: () => gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" }),
-            onLeaveBack: () => gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" })
+            onEnter: () => {
+                gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" });
+                gsap.to(subtitle, { opacity: 1, duration: 0.75, ease: "power2.out" });
+            },
+            onLeaveBack: () => {
+                gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" });
+                gsap.to(subtitle, { opacity: 0, duration: 0.75, ease: "power2.out" });
+            },
+            onEnterBack: () => {
+                gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" });
+                gsap.to(subtitle, { opacity: 1, duration: 0.75, ease: "power2.out" });
+            },
+            onLeave: () => {
+                gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" });
+                gsap.to(subtitle, { opacity: 0, duration: 0.75, ease: "power2.out" });
+            }
         });
 
         ScrollTrigger.create({
