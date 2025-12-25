@@ -555,9 +555,14 @@ function initSite() {
         rollers.forEach((roller, i) => {
             rollTl.to(roller, {
                 yPercent: -50,
-                duration: 1,
+                duration: 1.5,
                 ease: "none",
                 onEnter: () => {
+                    if (i === rollers.length - 1) {
+                        fireSprinklers();
+                    }
+                },
+                onEnterBack: () => {
                     if (i === rollers.length - 1) {
                         fireSprinklers();
                     }
