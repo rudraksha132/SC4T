@@ -556,19 +556,21 @@ function initSite() {
             rollTl.to(roller, {
                 yPercent: -50,
                 duration: 1.5,
-                ease: "none",
-                onEnter: () => {
-                    if (i === rollers.length - 1) {
-                        fireSprinklers();
-                    }
-                },
-                onEnterBack: () => {
-                    if (i === rollers.length - 1) {
-                        fireSprinklers();
-                    }
-                }
+                ease: "none"
             });
         });
+
+        if (rollers.length > 0) {
+            const lastRoller = rollers[rollers.length - 1];
+            ScrollTrigger.create({
+                trigger: lastRoller,
+                start: "top 75%",
+                end: "bottom 60%",
+                onEnter: fireSprinklers,
+                onEnterBack: fireSprinklers,
+                once: false
+            });
+        }
 
         function startDollAnimation() {
             // FIX: Ensure no double intervals
