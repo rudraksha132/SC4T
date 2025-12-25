@@ -445,7 +445,7 @@ function initSite() {
         const entryGlow = document.querySelector('.entry-glow');
         const universe = document.querySelector('.universe');
         const remember = document.querySelector('.remember');
-        const rememberText = document.querySelector('.remember-text');
+        const rememberText = document.querySelector('.remember-text h1');
         const part1 = document.querySelector('.part_1 h1');
         const part2 = document.querySelector('.part_2 h1');
         const startOffset = isMobile ? screenWidth * 0.8 : screenWidth * 0.6;
@@ -485,9 +485,9 @@ function initSite() {
         entryTl.to(part1, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to(part2, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to({}, { duration: 1 });
-        entryTl.to(universe, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" }); 
-        entryTl.to(part1, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" });
-        entryTl.to(part2, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" });
+        entryTl.to(universe, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" }, "ee"); 
+        entryTl.to(part1, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" }, "ee");
+        entryTl.to(part2, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" }, "ee");
         entryTl.to({}, { duration: 1 });
         entryTl.to(remember, { opacity: 1, filter: "blur(0px)", duration: 3, ease: "power2.inOut" }); 
         entryTl.add(() => { if (navigator.vibrate) navigator.vibrate(20); });
