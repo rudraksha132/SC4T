@@ -488,7 +488,11 @@ function initSite() {
         entryTl.to(universe, { opacity: 0, filter: "blur(15px)", duration: 2, ease: "power2.out" }); 
         entryTl.to(part1, { opacity: 0, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to(part2, { opacity: 0, filter: "blur(0px)", duration: 2, ease: "power2.out" });
-        
+        entryTl.to({}, { duration: 1 });
+        entryTl.to(remember, { opacity: 1, filter: "blur(0px)", duration: 3, ease: "power2.inOut" }); 
+        entryTl.add(() => { if (navigator.vibrate) navigator.vibrate(20); });
+        entryTl.to(rememberText, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
+        entryTl.to({}, { duration: 1 });
 
         // Doll Animation FIX: Robust start/stop and overwrite to prevent glitching
         const dollContainer = document.querySelector('.doll-container');
