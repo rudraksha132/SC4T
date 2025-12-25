@@ -569,7 +569,7 @@ function initSite() {
                 end: "bottom 60%",
                 onEnter: fireSprinklers,
                 onEnterBack: fireSprinklers,
-                once: 0
+                once: false
             });
         }
 
