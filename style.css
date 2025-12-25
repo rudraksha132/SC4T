@@ -264,6 +264,15 @@ section {
     z-index: 0;
 }
 
+.remember {
+    position: absolute;
+    width: 80vw;
+    object-fit: cover;
+    filter: blur(15px);
+    opacity: 0;
+    z-index: 0;
+}
+
 .pfp-left,
 .pfp-right {
     position: absolute;
@@ -340,6 +349,19 @@ section {
     position: absolute;
     width: 100%;
     height: 100%;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    z-index: 5;
+    opacity: 0;
+    filter: blur(15px);
+}
+
+.remember-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     display: flex;
     text-align: center;
     justify-content: center;
