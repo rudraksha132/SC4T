@@ -507,7 +507,7 @@ function initSite() {
                     particleCount: 8,
                     angle: 60,
                     spread: 55,
-                    origin: { x: 0, y: 0 },
+                    origin: { x: 0, y: 1 },
                     colors: colors,
                     scalar: 1,
                     shapes: ['circle', 'square'],
@@ -521,7 +521,7 @@ function initSite() {
                     particleCount: 8,
                     angle: 120,
                     spread: 55,
-                    origin: { x: 1, y: 0 }, 
+                    origin: { x: 1, y: 1 }, 
                     colors: colors,
                     scalar: 1,
                     shapes: ['circle', 'square'],
@@ -574,7 +574,6 @@ function initSite() {
         }
 
         function startDollAnimation() {
-            // FIX: Ensure no double intervals
             if(dollFrameLoop) clearInterval(dollFrameLoop);
             
             let showFirst = true;
