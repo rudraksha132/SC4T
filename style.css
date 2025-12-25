@@ -407,7 +407,6 @@ section {
     align-items: center;
     width: 90%;
     height: 7rem;
-    overflow: hidden;
 }
 
 .title {
@@ -426,6 +425,57 @@ section {
     font-size: 3.5rem;
     line-height: 3.5rem;
     font-weight: 700;
+}
+
+.outro-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.swap-wrapper {
+    display: grid;
+    place-items: center;
+    grid-template-areas: "stack"; 
+    margin-bottom: -0.5rem; 
+}
+
+.swap-line {
+    grid-area: stack; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.swap-line h1, .fixed-line h1 {
+    font-family: "LG", sans-serif;
+    font-size: 3.5rem; 
+    line-height: 3.5rem;
+    font-weight: 700;
+    margin: 0;
+    text-align: center;
+    white-space: nowrap;
+}
+
+
+@media (min-width: 769px) {
+    .swap-line h1, .fixed-line h1 {
+        font-size: 6rem; 
+        line-height: 5.5rem;
+    }
+}
+
+.swap-line.initial {
+    opacity: 1;
+    filter: blur(0px);
+}
+
+.swap-line.final {
+    opacity: 0;
+    filter: blur(8px);
 }
 
 p {
