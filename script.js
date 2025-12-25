@@ -24,9 +24,8 @@ pass.addEventListener('input', () => {
         content.classList.add('visible');
         if (navigator.vibrate) navigator.vibrate(30);
         
-        // Initialize Site AND Player immediately on user interaction
-        initSite();
-        initPlayer(); 
+        // Initialize Site
+        initSite(); 
     } else {
         pass.classList.add('error');
         pass.value = '';
@@ -40,8 +39,8 @@ pass.addEventListener('input', () => {
 // ========================================
 const SONGS = [
     {
-        title: "Blue",
-        artist: "Yung Kai",
+        title: "blue",
+        artist: "yung kai",
         color: "#243c5a", 
         cover: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/yung%20kai%20-%20blue%20(official%20audio).jpg",
         audio: "https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/yung%20kai%20-%20blue%20(official%20audio).mp3",
@@ -67,9 +66,9 @@ const SONGS = [
 
 let audio = new Audio();
 let parsedLyrics = [];
-let isScrubbing = false;
-let userScrollTimeout;
-let currentLineIndex = -1;
+let currentSongIndex = 0;
+let syncLoopStarted = false;
+const LINE_HEIGHT = 44;
 
 function parseTimestamp(timeStr) {
     const parts = timeStr.split(':');
@@ -77,9 +76,16 @@ function parseTimestamp(timeStr) {
 }
 
 async function initPlayer() {
-    // Select Random Song
-    const songIndex = Math.floor(Math.random() * SONGS.length);
-    const song = SONGS[songIndex];
+    await loadSong(currentSongIndex);
+    
+    if (!syncLoopStarted) {
+        startSyncLoop();
+        syncLoopStarted = true;
+    }
+}
+
+async function loadSong(index) {
+    const song = SONGS[index];
 
     // UI Setup
     document.getElementById('album-art').src = song.cover;
@@ -89,7 +95,13 @@ async function initPlayer() {
 
     // Load Audio
     audio.src = song.audio;
-    audio.loop = true;
+    audio.loop = false; 
+    
+    // When song ends, play next song
+    audio.onended = () => {
+        currentSongIndex = (currentSongIndex + 1) % SONGS.length; 
+        loadSong(currentSongIndex);
+    };
     
     // Play audio
     try {
@@ -101,30 +113,20 @@ async function initPlayer() {
     // Load Lyrics
     try {
         const response = await fetch(song.lyrics);
+        if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
         parseLyrics(text);
         renderLyrics();
-        startSyncLoop();
     } catch (e) {
         console.error("Lyrics failed to load", e);
     }
-
-    // Scroll Interaction (Pause sync on scroll, resume after 1.5s)
-    const wrapper = document.getElementById('lyrics-wrapper');
-    wrapper.addEventListener('scroll', () => {
-        isScrubbing = true;
-        clearTimeout(userScrollTimeout);
-        userScrollTimeout = setTimeout(() => {
-            isScrubbing = false;
-        }, 1500); 
-    });
 }
 
 function parseLyrics(text) {
     parsedLyrics = [];
-    const lines = text.split(/\n\s*\n/);
+    const blocks = text.trim().split(/\n\s*\n/);
     
-    lines.forEach(block => {
+    blocks.forEach(block => {
         const words = [];
         let blockStartTime = null;
         let blockEndTime = 0;
@@ -153,10 +155,42 @@ function parseLyrics(text) {
             parsedLyrics.push({
                 startTime: blockStartTime,
                 endTime: blockEndTime,
-                words: words
+                words: words,
+                isPause: false
             });
         }
     });
+    
+    const PAUSE_THRESHOLD = 7; 
+    const lyricsWithPauses = [];
+    
+    for (let i = 0; i < parsedLyrics.length; i++) {
+        lyricsWithPauses.push(parsedLyrics[i]);
+        
+        // Check gap to next line
+        if (i < parsedLyrics.length - 1) {
+            const currentEnd = parsedLyrics[i].endTime;
+            const nextStart = parsedLyrics[i + 1].startTime;
+            const gap = nextStart - currentEnd;
+            
+            if (gap > PAUSE_THRESHOLD) {
+                // Insert a pause line with "..."
+                lyricsWithPauses.push({
+                    startTime: currentEnd,
+                    endTime: nextStart,
+                    isPause: true,
+                    words: [{
+                        text: "...",
+                        start: currentEnd,
+                        end: nextStart,
+                        id: 'pause-' + Math.random().toString(36).substr(2, 9)
+                    }]
+                });
+            }
+        }
+    }
+    
+    parsedLyrics = lyricsWithPauses;
 }
 
 function renderLyrics() {
@@ -166,18 +200,19 @@ function renderLyrics() {
     parsedLyrics.forEach((line, index) => {
         const div = document.createElement('div');
         div.className = 'lyric-line';
+        if (line.isPause) div.classList.add('pause-line');
         div.dataset.index = index;
         div.dataset.start = line.startTime;
 
         div.addEventListener('click', () => {
             audio.currentTime = line.startTime;
-            isScrubbing = false;
         });
 
         line.words.forEach(word => {
             const span = document.createElement('span');
             span.className = 'lyric-word';
-            span.textContent = word.text + ' '; 
+            if (line.isPause) span.classList.add('pause-word');
+            span.innerHTML = word.text + '&nbsp;'; 
             span.dataset.start = word.start;
             span.dataset.end = word.end;
             span.id = 'w-' + word.id;
@@ -190,13 +225,13 @@ function renderLyrics() {
 
 function startSyncLoop() {
     const wrapper = document.getElementById('lyrics-wrapper');
-    const lines = document.querySelectorAll('.lyric-line');
-    const containerHeight = document.getElementById('lyrics-container').offsetHeight;
+    const lines = document.getElementsByClassName('lyric-line'); 
 
     gsap.ticker.add(() => {
         const time = audio.currentTime;
         
-        let activeIdx = -1;
+        let activeIdx = 0; 
+        
         for (let i = 0; i < parsedLyrics.length; i++) {
             if (time >= parsedLyrics[i].startTime) {
                 activeIdx = i;
@@ -204,48 +239,40 @@ function startSyncLoop() {
                 break;
             }
         }
+        
+        if (parsedLyrics.length === 0) activeIdx = -1;
 
-        // --- Line Sync ---
-        if (activeIdx !== -1 && activeIdx < lines.length) {
-            lines.forEach((line, idx) => {
-                if (idx === activeIdx) {
+        if (activeIdx !== -1 && lines.length > 0) {
+            const translateY = -(activeIdx * LINE_HEIGHT);
+            wrapper.style.transform = `translateY(${translateY}px)`;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (i === activeIdx) {
                     if (!line.classList.contains('active')) line.classList.add('active');
                 } else {
                     if (line.classList.contains('active')) line.classList.remove('active');
                 }
-            });
-
-            // Auto-scroll center
-            if (!isScrubbing && activeIdx !== currentLineIndex) {
-                const activeLine = lines[activeIdx];
-                const offset = activeLine.offsetTop - (containerHeight / 2) + (activeLine.offsetHeight / 2);
-                wrapper.scrollTo({ top: offset, behavior: 'smooth' });
-                currentLineIndex = activeIdx;
             }
         }
 
-        // --- Word Sync ---
-        if (activeIdx !== -1) {
+        // Word sync animation - skip for pause lines
+        if (activeIdx !== -1 && parsedLyrics[activeIdx] && !parsedLyrics[activeIdx].isPause) {
             const currentLineData = parsedLyrics[activeIdx];
             currentLineData.words.forEach(word => {
                 const el = document.getElementById('w-' + word.id);
                 if (!el) return;
 
                 if (time >= word.end) {
-                    // Completed: Move UP and STAY UP
                     el.style.setProperty('--p', '100%');
-                    if (!el.classList.contains('popped')) {
-                        el.classList.add('popped');
-                    }
+                    if (!el.classList.contains('popped')) el.classList.add('popped');
                 } else if (time >= word.start) {
-                    // Active: Gradient fill
                     const duration = word.end - word.start;
                     const progress = (time - word.start) / duration;
                     const percent = Math.min(100, Math.max(0, progress * 100));
                     el.style.setProperty('--p', `${percent}%`);
                     el.classList.remove('popped');
                 } else {
-                    // Future: Grey
                     el.style.setProperty('--p', '0%');
                     el.classList.remove('popped');
                 }
@@ -259,7 +286,8 @@ function startSyncLoop() {
 // MAIN SITE INITIALIZATION
 // ========================================
 function initSite() {
-    gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
+    // Note: SplitText removed to prevent errors without premium plugin
+    gsap.registerPlugin(ScrollTrigger, CustomEase);
 
     const lenis = new Lenis();
     lenis.on('scroll', ScrollTrigger.update);
@@ -268,17 +296,19 @@ function initSite() {
 
     const images = document.querySelectorAll('.images img');
     const burst = document.querySelectorAll('.burst img');
-    const titleHeadings = document.querySelectorAll('.title');
-    const splitTextMap = new Map();
-
-    document.fonts.ready.then(() => {
-        titleHeadings.forEach((heading) => {
-            const split = new SplitText(heading, { type: "words" });
-            split.words.forEach((word) => word.classList.add("word"));
-            splitTextMap.set(heading, split);
+    
+    // Simple text reveal fallback instead of SplitText
+    const titleHeadings = document.querySelectorAll('.title h1');
+    titleHeadings.forEach(h1 => {
+        gsap.set(h1, { opacity: 0, y: 20 });
+        ScrollTrigger.create({
+            trigger: h1,
+            start: "top 80%",
+            onEnter: () => gsap.to(h1, { opacity: 1, y: 0, duration: 1, ease: "power2.out" })
         });
-        animate();
     });
+
+    animate();
 
     function animate() {
         const totalImages = images.length;
@@ -289,26 +319,28 @@ function initSite() {
         const screenWidth = window.innerWidth;
         const scatterMultiplier = isMobile ? 2.5 : 0.5;
         const marqueeTrack = document.querySelector('.marquee-track');
-        const scatterDirections = [
-            { x: 1.3, y: 0.7 }, { x: -1.5, y: 1.0 }, { x: 1.1, y: -1.3 },
-            { x: -1.7, y: -0.8 }, { x: 0.8, y: 1.5 }, { x: -1.0, y: -1.4 },
-            { x: 1.6, y: 0.3 }, { x: -0.7, y: 1.7 }, { x: 1.2, y: -1.6 },
-            { x: -1.4, y: 0.9 }, { x: 1.8, y: -0.5 }, { x: -1.1, y: -1.8 },
-            { x: 0.9, y: 1.8 }, { x: -1.9, y: 0.4 }, { x: 1.0, y: -1.9 },
-            { x: -0.8, y: 1.9 }, { x: 1.7, y: -1.0 }, { x: -1.3, y: -1.2 },
-            { x: 0.7, y: 2.0 }, { x: 1.25, y: -0.2 }
-        ];
-        const startPositions = Array.from(burst).map(() => ({ x: 0, y: 0, z: -1000, scale: 0 }));
-        const endPositions = scatterDirections.map((dir) => ({
-            x: dir.x * screenWidth * scatterMultiplier,
-            y: dir.y * screenHeight * scatterMultiplier,
-            z: 2000,
-            scale: 1
-        }));
         const bgColors = [
             "#111111", "#0f0f0fff", "#000000ff", "#0b0f12ff",
             "#110b0eff", "#151511ff", "#0b0f0cff", "#0c0a0cff", "#111111"
         ];
+        
+        // Setup burst positions
+        const scatterDirections = [
+             { x: 1.3, y: 0.7 }, { x: -1.5, y: 1.0 }, { x: 1.1, y: -1.3 },
+             { x: -1.7, y: -0.8 }, { x: 0.8, y: 1.5 }, { x: -1.0, y: -1.4 },
+             { x: 1.6, y: 0.3 }, { x: -0.7, y: 1.7 }, { x: 1.2, y: -1.6 },
+             { x: -1.4, y: 0.9 }, { x: 1.8, y: -0.5 }, { x: -1.1, y: -1.8 },
+             { x: 0.9, y: 1.8 }, { x: -1.9, y: 0.4 }, { x: 1.0, y: -1.9 },
+             { x: -0.8, y: 1.9 }, { x: 1.7, y: -1.0 }, { x: -1.3, y: -1.2 },
+             { x: 0.7, y: 2.0 }, { x: 1.25, y: -0.2 }
+        ];
+        const startPositions = Array.from(burst).map(() => ({ x: 0, y: 0, z: -1000, scale: 0 }));
+        const endPositions = scatterDirections.map((dir) => ({
+             x: dir.x * screenWidth * scatterMultiplier,
+             y: dir.y * screenHeight * scatterMultiplier,
+             z: 2000,
+             scale: 1
+        }));
 
         burst.forEach((img, i) => gsap.set(img, startPositions[i]));
         
@@ -354,9 +386,9 @@ function initSite() {
         tl.to(marqueeTrack, { yPercent: 0, ease: "power4.out", duration: 1.5}, "startReveal");
         tl.to(images, { scale: 0.95, ease: "power1.inOut", duration: 0.6 }, "startReveal");
         
-        // ANIMATE CUSTOM PLAYER IN
-        tl.to(player, { y: "0%", filter: "blur(0px)", borderRadius: "12px", ease: "power1.inOut", duration: 1.25 }, "startReveal");
-        tl.to(player, { width: isMobile ? "90vw" : "40vw", ease: CustomEase.create("spring", "M0,0 L0.000,0.000 L0.005,0.007 L0.010,0.029 L0.015,0.062 L0.020,0.104 L0.025,0.155 L0.030,0.213 L0.035,0.275 L0.040,0.340 L0.045,0.408 L0.050,0.476 L0.055,0.544 L0.060,0.610 L0.065,0.675 L0.070,0.737 L0.075,0.795 L0.080,0.849 L0.085,0.900 L0.090,0.946 L0.095,0.987 L0.100,1.023 L0.105,1.055 L0.110,1.083 L0.115,1.106 L0.120,1.124 L0.125,1.139 L0.130,1.150 L0.135,1.157 L0.140,1.162 L0.145,1.163 L0.150,1.162 L0.155,1.158 L0.160,1.153 L0.165,1.146 L0.170,1.138 L0.175,1.129 L0.180,1.118 L0.185,1.108 L0.190,1.097 L0.195,1.086 L0.200,1.075 L0.205,1.064 L0.210,1.053 L0.215,1.043 L0.220,1.034 L0.225,1.025 L0.230,1.017 L0.235,1.009 L0.240,1.002 L0.245,0.996 L0.250,0.991 L0.255,0.987 L0.260,0.983 L0.265,0.980 L0.270,0.977 L0.275,0.976 L0.280,0.974 L0.285,0.974 L0.290,0.973 L0.295,0.974 L0.300,0.974 L0.305,0.975 L0.310,0.976 L0.315,0.977 L0.320,0.979 L0.325,0.981 L0.330,0.982 L0.335,0.984 L0.340,0.986 L0.345,0.988 L0.350,0.990 L0.355,0.991 L0.360,0.993 L0.365,0.994 L0.370,0.996 L0.375,0.997 L0.380,0.999 L0.385,1.000 L0.390,1.001 L0.395,1.001 L0.400,1.002 L0.405,1.003 L0.410,1.003 L0.415,1.004 L0.420,1.004 L0.425,1.004 L0.430,1.004 L0.435,1.004 L0.440,1.004 L0.445,1.004 L0.450,1.004 L0.455,1.004 L0.460,1.004 L0.465,1.003 L0.470,1.003 L0.475,1.003 L0.480,1.003 L0.485,1.002 L0.490,1.002 L0.495,1.002 L0.500,1.001 L0.505,1.001 L0.510,1.001 L0.515,1.001 L0.520,1.000 L0.525,1.000 L0.530,1.000 L0.535,1.000 L0.540,1.000 L0.545,1.000 L0.550,1.000 L0.555,0.999 L0.560,0.999 L0.565,0.999 L0.570,0.999 L0.575,0.999 L0.580,0.999 L0.585,0.999 L0.590,0.999 L0.595,0.999 L0.600,0.999 L0.605,0.999 L0.610,0.999 L0.615,0.999 L0.620,1.000 L0.625,1.000 L0.630,1.000 L0.635,1.000 L0.640,1.000 L0.645,1.000 L0.650,1.000 L0.655,1.000 L0.660,1.000 L0.665,1.000 L0.670,1.000 L0.675,1.000 L0.680,1.000 L0.685,1.000 L0.690,1.000 L0.695,1.000 L0.700,1.000 L0.705,1.000 L0.710,1.000 L0.715,1.000 L0.720,1.000 L0.725,1.000 L0.730,1.000 L0.735,1.000 L0.740,1.000 L0.745,1.000 L0.750,1.000 L0.755,1.000 L0.760,1.000 L0.765,1.000 L0.770,1.000 L0.775,1.000 L0.780,1.000 L0.785,1.000 L0.790,1.000 L0.795,1.000 L0.800,1.000 L0.805,1.000 L0.810,1.000 L0.815,1.000 L0.820,1.000 L0.825,1.000 L0.830,1.000 L0.835,1.000 L0.840,1.000 L0.845,1.000 L0.850,1.000 L0.855,1.000 L0.860,1.000 L0.865,1.000 L0.870,1.000 L0.875,1.000 L0.880,1.000 L0.885,1.000 L0.890,1.000 L0.895,1.000 L0.900,1.000 L0.905,1.000 L0.910,1.000 L0.915,1.000 L0.920,1.000 L0.925,1.000 L0.930,1.000 L0.935,1.000 L0.940,1.000 L0.945,1.000 L0.950,1.000 L0.955,1.000 L0.960,1.000 L0.965,1.000 L0.970,1.000 L0.975,1.000 L0.980,1.000 L0.985,1.000 L0.990,1.000 L0.995,1.000 L1.000,1.000"), duration: 1.85 }, "startReveal+=0.75");
+        // Player Intro Animation
+        tl.to(player, { y: "0%", filter: "blur(0px)", borderRadius: "12px", ease: "power1.inOut", duration: 1.25, onComplete: initPlayer }, "startReveal");
+        tl.to(player, { width: isMobile ? "90vw" : "40vw", ease: CustomEase.create("spring", "M0,0 L0.000,0.000 L0.005,0.007 L0.010,0.029 L0.015,0.062 L0.020,0.104 L0.025,0.155 L0.030,0.213 L0.035,0.275 L0.040,0.340 L0.045,0.408 L0.050,0.476 L0.055,0.544 L0.060,0.610 L0.065,0.675 L0.070,0.737 L0.075,0.795 L0.080,0.849 L0.085,0.900 L0.090,0.946 L0.095,0.987 L0.100,1.023 L0.105,1.055 L0.110,1.083 L0.115,1.106 L0.120,1.124 L0.125,1.139 L0.130,1.150 L0.135,1.157 L0.140,1.162 L0.145,1.163 L0.150,1.162 L0.155,1.158 L0.160,1.153 L0.165,1.146 L0.170,1.138 L0.175,1.129 L0.180,1.118 L0.185,1.108 L0.190,1.097 L0.195,1.086 L0.200,1.075 L0.205,1.064 L0.210,1.053 L0.215,1.043 L0.220,1.034 L0.225,1.025 L0.230,1.017 L0.235,1.009 L0.240,1.002 L0.245,0.996 L0.250,0.991 L0.255,0.987 L0.260,0.983 L0.265,0.980 L0.270,0.977 L0.275,0.976 L0.280,0.974 L0.285,0.974 L0.290,0.973 L0.295,0.974 L0.300,0.974 L0.305,0.975 L0.310,0.976 L0.315,0.977 L0.320,0.979 L0.325,0.981 L0.330,0.982 L0.335,0.984 L0.340,0.986 L0.345,0.988 L0.350,0.990 L0.355,0.991 L0.360,0.993 L0.365,0.994 L0.370,0.996 L0.375,0.997 L0.380,0.999 L0.385,1.000 L0.390,1.001 L0.395,1.001 L0.400,1.002 L0.405,1.003 L0.410,1.003 L0.415,1.004 L0.420,1.004 L0.425,1.004 L0.430,1.004 L0.435,1.004 L0.440,1.004 L0.445,1.004 L0.450,1.004 L0.455,1.004 L0.460,1.004 L0.465,1.003 L0.470,1.003 L0.475,1.003 L0.480,1.003 L0.485,1.002 L0.490,1.002 L0.495,1.002 L0.500,1.001 L0.505,1.001 L0.510,1.001 L0.515,1.001 L0.520,1.000 L0.525,1.000 L0.530,1.000 L0.535,1.000 L0.540,1.000 L0.545,1.000 L0.550,1.000 L0.555,0.999 L0.560,0.999 L0.565,0.999 L0.570,0.999 L0.575,0.999 L0.580,0.999 L0.585,0.999 L0.590,0.999 L0.595,0.999 L0.600,0.999 L0.605,0.999 L0.610,0.999 L0.615,0.999 L0.620,1.000 L0.625,1.000 L0.630,1.000 L0.635,1.000 L0.640,1.000 L0.645,1.000 L0.650,1.000 L0.655,1.000 L0.660,1.000 L0.665,1.000 L0.670,1.000 L0.675,1.000 L0.680,1.000 L0.685,1.000 L0.690,1.000 L0.695,1.000 L0.700,1.000 L0.705,1.000 L0.710,1.000 L0.715,1.000 L0.720,1.000 L0.725,1.000 L0.730,1.000 L0.735,1.000 L0.740,1.000 L0.745,1.000 L0.750,1.000 L0.755,1.000 L0.760,1.000 L0.765,1.000 L0.770,1.000 L0.775,1.000 L0.780,1.000 L0.785,1.000 L0.790,1.000 L0.795,1.000 L0.800,1.000 L0.805,1.000 L0.810,1.000 L0.815,1.000 L0.820,1.000 L0.825,1.000 L0.830,1.000 L0.835,1.000 L0.840,1.000 L0.845,1.000 L0.850,1.000 L0.855,1.000 L0.860,1.000 L0.865,1.000 L0.870,1.000 L0.875,1.000 L0.880,1.000 L0.885,1.000 L0.890,1.000 L0.895,1.000 L0.900,1.000 L0.905,1.000 L0.910,1.000 L0.915,1.000 L0.920,1.000 L0.925,1.000 L0.930,1.000 L0.935,1.000 L0.940,1.000 L0.945,1.000 L0.950,1.000 L0.955,1.000 L0.960,1.000 L0.965,1.000 L0.970,1.000 L0.975,1.000 L0.980,1.000 L0.985,1.000 L0.990,1.000 L0.995,1.000 L1.000,1.000"), duration: 1.85}, "startReveal+=0.75");
 
         for (let i = 0; i < totalImages - 1; i++) {
             tl.to(images[i], {
@@ -380,6 +412,7 @@ function initSite() {
 
         tl.to(mainImage, { duration: 0.4 });
 
+        // Burst Animation
         tl.to({}, {
             duration: 6,
             onUpdate: function() {
@@ -400,9 +433,7 @@ function initSite() {
             }
         });
 
-        // ========================================
-        // ENTRY IMAGES
-        // ========================================
+        // Entry Images Animation (Same as before)
         const leftImage = document.querySelector('.pfp-left');
         const rightImage = document.querySelector('.pfp-right');
         const combinedImage = document.querySelector('.pfp-combined');
@@ -448,22 +479,17 @@ function initSite() {
         entryTl.to(part2, { opacity: 1, filter: "blur(0px)", duration: 2, ease: "power2.out" });
         entryTl.to({}, { duration: 1 });
 
-        // ========================================
-        // DOLL ANIMATION
-        // ========================================
+        // Doll Animation (Same as before)
         const dollContainer = document.querySelector('.doll-container');
         const doll1 = document.querySelector('.doll-1');
         const doll2 = document.querySelector('.doll-2');
-
         let dollFrameLoop = null;
-
         gsap.set(dollContainer, { y: "110%" });
         gsap.set(doll1, { opacity: 1 });
         gsap.set(doll2, { opacity: 0 });
 
         function startDollAnimation() {
             let showFirst = true;
-
             dollFrameLoop = setInterval(() => {
                 if (showFirst) {
                     gsap.set(doll1, { opacity: 0 });
@@ -490,90 +516,35 @@ function initSite() {
             start: "top 80%",
             end: "bottom 80%",
             onEnter: () => {
-                gsap.to(dollContainer, {
-                    y: "-30%",
-                    filter: "blur(0px)",
-                    duration: 0.8,
-                    ease: "power2.out",
-                    onComplete: startDollAnimation
-                });
+                gsap.to(dollContainer, { y: "-30%", filter: "blur(0px)", duration: 0.8, ease: "power2.out", onComplete: startDollAnimation });
             },
             onLeave: () => {
                 stopDollAnimation();
-                gsap.to(dollContainer, {
-                    y: "100%",
-                    filter: "blur(5px)",
-                    duration: 0.5,
-                    ease: "power2.in"
-                });
+                gsap.to(dollContainer, { y: "100%", filter: "blur(5px)", duration: 0.5, ease: "power2.in" });
             },
             onEnterBack: () => {
-                gsap.to(dollContainer, {
-                    y: "-30%",
-                    filter: "blur(0px)",
-                    duration: 0.6,
-                    ease: "power2.out",
-                    onComplete: startDollAnimation
-                });
+                gsap.to(dollContainer, { y: "-30%", filter: "blur(0px)", duration: 0.6, ease: "power2.out", onComplete: startDollAnimation });
             },
             onLeaveBack: () => {
                 stopDollAnimation();
-                gsap.to(dollContainer, {
-                    y: "100%",
-                    filter: "blur(5px)",
-                    duration: 0.5,
-                    ease: "power2.in"
-                });
+                gsap.to(dollContainer, { y: "100%", filter: "blur(5px)", duration: 0.5, ease: "power2.in" });
             }
         });
 
-        // ========================================
-        // ENDING
-        // ========================================
-        // Replaced iframe selector with custom player selector
+        // Outro Animation for Player
         ScrollTrigger.create({
             trigger: ".outro",
             start: "99% bottom",
-            onEnter: () => {
-                gsap.to(player, {
-                    y: "90%",
-                    filter: "blur(8px)",
-                    duration: 0.75,
-                    ease: "power2.out"
-                });
-            },
-            onLeave: () => {
-                gsap.to(player, {
-                    y: "0%",
-                    filter: "blur(0px)",
-                    duration: 0.75,
-                    ease: "power2.out"
-                });
-            },
-            onEnterBack: () => {
-                gsap.to(player, {
-                    y: "90%",
-                    filter: "blur(8px)",
-                    duration: 0.75,
-                    ease: "power2.out"
-                });
-            },
-            onLeaveBack: () => {
-                gsap.to(player, {
-                    y: "0%",
-                    filter: "blur(0px)",
-                    duration: 0.75,
-                    ease: "power2.out"
-                });
-            }
+            onEnter: () => gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" }),
+            onLeave: () => gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" }),
+            onEnterBack: () => gsap.to(player, { y: "150%", filter: "blur(8px)", duration: 0.75, ease: "power2.out" }),
+            onLeaveBack: () => gsap.to(player, { y: "0%", filter: "blur(0px)", duration: 0.75, ease: "power2.out" })
         });
 
         ScrollTrigger.create({
             trigger: ".outro",
             start: "99.9% bottom",
-            onEnter: () => {
-                download();
-            },
+            onEnter: () => download(),
             once: true
         });
 
