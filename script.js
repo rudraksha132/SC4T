@@ -567,9 +567,13 @@ function initSite() {
                 trigger: lastRoller,
                 start: "top 75%",
                 end: "bottom 60%",
-                onEnter: () => fireSprinklers();,
-                onEnterBack: () => fireSprinklers();,
-                once: false
+                onEnter: () => {
+                    fireSprinklers();
+                },
+                onEnterBack: () => {
+                    fireSprinklers();
+                },
+                once: 0
             });
         }
 
