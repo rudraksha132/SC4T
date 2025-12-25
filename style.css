@@ -77,6 +77,11 @@
     src: url("https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/fonts/pp-playground/medium.otf") format("opentype");
 }
 
+@font-face {
+    font-family: "GG";
+    src: url("https://raw.githubusercontent.com/rudraksha132/srcmed/refs/heads/main/fonts/gg/semibold.ttf") format("truetype");
+}
+
 body {
     font-family: "LG", sans-serif;
     font-feature-settings: "ss02";
@@ -355,6 +360,47 @@ section {
     transform: translate(-30%, -5%);
 }
 
+.title {
+    display: flex;
+    flex-direction: column;
+}
+
+.line-mask {
+    height: 3.5rem;
+    overflow: hidden;
+    position: relative;
+    display: block;
+}
+
+.line-roller {
+    display: block;
+    will-change: transform;
+}
+
+.title h1 {
+    height: 3.5rem;
+    line-height: 3.5rem;
+    letter-spacing: -0.01rem;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+    margin: 0;
+    display: block;
+    font-size: 3.5rem;
+    font-weight: 700;
+    white-space: nowrap; 
+}
+
+@media (min-width: 769px) {
+    .line-mask {
+        height: 3rem;
+    }
+    .title h1 {
+        font-size: 3rem;
+        height: 3rem;
+        line-height: 3rem;
+    }
+}
+
 .title-container {
     display: flex;
     justify-content: center;
@@ -364,7 +410,7 @@ section {
     overflow: hidden;
 }
 
-.spotlight .title {
+.title {
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -375,10 +421,28 @@ section {
 }
 
 .title h1 {
+    font-family: "LG", sans-serif;
     width: 100%;
     font-size: 3.5rem;
     line-height: 3.5rem;
     font-weight: 700;
+}
+
+p {
+    font-family: "GG", sans-serif;
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--bg);
+    opacity: 0.8;
+}
+
+.subtitle {
+    position: absolute;
+    top: 80%;
+    left: 50%;
+    transform: translate(-50%, -80%);
+    text-align: center;
+    opacity: 0;
 }
 
 @media (min-width: 769px) {
@@ -433,7 +497,7 @@ span {
 
 .doll {
     position: absolute;
-    bottom: 3rem;
+    bottom: 2.8rem;
     left: 20px;
     width: 100%;
     height: 100%;
