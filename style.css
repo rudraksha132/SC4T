@@ -337,6 +337,7 @@ section {
 
 .entry h1 {
     font-family: "P", serif;
+    user-select: none;
     font-weight: 500;
     font-size: 3rem;
     line-height: 3rem;
@@ -623,6 +624,7 @@ span {
     overflow: hidden;
     font-family: "Inter", sans-serif;
     font-feature-settings: "ss07", "ss08", "case";
+    user-select: none;
     color: white;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
